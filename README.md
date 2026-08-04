@@ -33,10 +33,19 @@ as long as the signed URL hasn't expired yet.
 ## Use
 
 1. Browse to `studio.tripo3d.ai` and open/generate/view a model as normal.
-2. Click the extension icon — the badge shows how many model files have
-   been captured.
-3. Click **Download** next to any entry, or **Download All**.
-4. Files save under your Downloads folder in a `Tripo3D/` subfolder.
+2. Click the extension icon — the badge shows how many *new, undownloaded*
+   model files have been captured.
+3. Entries are grouped by the page/tab they came from. Click a group's
+   title to jump back to that tab; click **Download N new** to grab
+   everything pending in that group, or download entries one at a time.
+4. Once a file is downloaded it's marked **Downloaded ✓** and dims out
+   (it stays in the list for reference, and no longer counts toward the
+   badge) — click it again any time to re-download.
+5. Files save under your Downloads folder as
+   `Tripo3D/<page name>/<page name> (part N).ext`, using the browser
+   tab's title as the display name. If the tab title isn't descriptive
+   (e.g. Tripo3D didn't update it for that project), it falls back to the
+   original CDN filename.
 
 Signed URLs expire after a while, so download soon after an entry appears —
 if a download fails, just reload/reopen the model in the site to re-trigger
@@ -46,6 +55,9 @@ the fetch and capture a fresh link.
 
 - This only touches files loaded during your own normal browsing/generation
   in your own account — it doesn't call any private API directly.
-- Captured entries are kept in `chrome.storage.session` (cleared when the
-  browser fully closes), since signed links wouldn't survive a restart
-  anyway.
+- Captured entries (including download status and source page) are kept in
+  `chrome.storage.session` (cleared when the browser fully closes), since
+  signed links wouldn't survive a restart anyway.
+- Tab title/URL is read via `chrome.tabs.get()`, which only returns that
+  data for tabs the extension already has host permission for — no extra
+  `tabs` permission needed.

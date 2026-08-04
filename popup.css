@@ -45,20 +45,85 @@ h1 {
 }
 
 #list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 360px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
-#list li {
+.page-group {
+  border-bottom: 6px solid #f5f6f8;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #f8f9fb;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.page-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+}
+
+.page-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.page-title:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.page-header .group-download {
+  font-size: 10px;
+  padding: 3px 7px;
+  border: 1px solid #d0d0d0;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.page-header .group-download:hover {
+  background: #ececec;
+}
+
+.page-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.page-items li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
   gap: 8px;
+}
+
+.page-items li.downloaded {
+  opacity: 0.55;
 }
 
 .info {
@@ -81,7 +146,7 @@ h1 {
   color: #777;
 }
 
-#list button {
+.page-items button {
   font-size: 11px;
   padding: 4px 8px;
   border: 1px solid #2563eb;
@@ -92,8 +157,13 @@ h1 {
   flex-shrink: 0;
 }
 
-#list button:hover {
+.page-items button:hover {
   background: #eff4ff;
+}
+
+.page-items li.downloaded button {
+  border-color: #bbb;
+  color: #777;
 }
 
 .empty {
