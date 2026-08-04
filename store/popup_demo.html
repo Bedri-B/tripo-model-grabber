@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Model Grabber for Tripo3D</title>
+<link rel="stylesheet" href="../popup.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="../icons/icon32.png" alt="" width="20" height="20">
+      <h1>Model Grabber</h1>
+    </div>
+    <div class="actions">
+      <button>Download All</button>
+      <button>Clear</button>
+    </div>
+  </header>
+  <ul id="list"></ul>
+  <footer>Unofficial tool · not affiliated with or endorsed by Tripo3D</footer>
+
+  <script>
+    const demo = [
+      { filename: "dragon_archer_meshopt.glb", size: "18.4 MB", age: "2m ago" },
+      { filename: "warrior_figure_meshopt.glb", size: "9.7 MB", age: "6m ago" },
+      { filename: "tripo_part_0.glb", size: "2.1 MB", age: "11m ago" },
+      { filename: "tripo_part_3.glb", size: "1.8 MB", age: "11m ago" },
+      { filename: "fantasy_axe.fbx", size: "4.3 MB", age: "38m ago" },
+    ];
+    const list = document.getElementById("list");
+    for (const m of demo) {
+      const li = document.createElement("li");
+
+      const info = document.createElement("div");
+      info.className = "info";
+
+      const name = document.createElement("span");
+      name.className = "filename";
+      name.textContent = m.filename;
+
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = `${m.size} · ${m.age}`;
+
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Download";
+
+      li.appendChild(info);
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+  </script>
+</body>
+</html>

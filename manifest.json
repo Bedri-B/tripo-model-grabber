@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Model Grabber for Tripo3D",
+  "short_name": "Model Grabber",
+  "version": "1.0.0",
+  "description": "Catches .glb/.gltf/.fbx/.obj/.usdz/.stl model files as they load on studio.tripo3d.ai so you can save them in one click. Unofficial, not affiliated with Tripo3D.",
+  "permissions": ["webRequest", "downloads", "storage"],
+  "host_permissions": [
+    "https://*.tripo3d.ai/*",
+    "https://*.tripo3d.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Model Grabber for Tripo3D"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

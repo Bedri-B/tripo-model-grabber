@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>screenshot source</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 1280px;
+    height: 800px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #4338ca 0%, #2563eb 55%, #1d4ed8 100%);
+    overflow: hidden;
+  }
+
+  .stage {
+    position: relative;
+    width: 1280px;
+    height: 800px;
+  }
+
+  .copy {
+    position: absolute;
+    top: 120px;
+    left: 90px;
+    width: 480px;
+    color: #fff;
+  }
+
+  .copy .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .copy .logo img {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+  }
+
+  .copy .logo span {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  .copy h1 {
+    font-size: 40px;
+    line-height: 1.15;
+    margin: 0 0 18px;
+    font-weight: 800;
+  }
+
+  .copy p {
+    font-size: 16px;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 14px;
+  }
+
+  .copy .tag {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 999px;
+    padding: 6px 14px;
+  }
+
+  .browser {
+    position: absolute;
+    top: 90px;
+    right: 70px;
+    width: 620px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.35);
+    background: #f4f5f7;
+  }
+
+  .browser .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #e7e9ee;
+  }
+
+  .browser .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+  .dot.red { background: #ff5f57; }
+  .dot.yellow { background: #febc2e; }
+  .dot.green { background: #28c840; }
+
+  .browser .addressbar {
+    flex: 1;
+    margin-left: 8px;
+    background: #fff;
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #555;
+  }
+
+  .browser .page {
+    height: 420px;
+    background:
+      radial-gradient(circle at 30% 20%, #eef1ff 0%, transparent 45%),
+      #f9fafc;
+    position: relative;
+  }
+
+  .browser .page .sitebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    color: #6b7280;
+    font-size: 13px;
+    border-bottom: 1px solid #eef0f3;
+  }
+
+  .popup-mock {
+    position: absolute;
+    top: 60px;
+    right: 24px;
+    width: 340px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 18px 40px rgba(20, 30, 60, 0.25);
+    overflow: hidden;
+    border: 1px solid #e5e5e5;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="copy">
+    <div class="logo">
+      <img src="../icons/icon128.png" alt="">
+      <span>MODEL GRABBER</span>
+    </div>
+    <h1>Save your Tripo3D models in one click.</h1>
+    <p>Model Grabber watches for .glb, .gltf, .fbx, .obj, .usdz and .stl files as they load in Tripo3D Studio, and lists them for instant download — no digging through DevTools.</p>
+    <p>Runs entirely in your browser. Nothing is ever collected or sent anywhere else.</p>
+    <div class="tag">Unofficial · not affiliated with Tripo3D</div>
+  </div>
+
+  <div class="browser">
+    <div class="titlebar">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+      <div class="addressbar">studio.tripo3d.ai/workspace/generate</div>
+    </div>
+    <div class="page">
+      <div class="sitebar">Tripo3D Studio — Generate 3D Model</div>
+
+      <div class="popup-mock">
+        <iframe src="popup_demo.html" style="width:340px;height:520px;border:0;display:block;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
