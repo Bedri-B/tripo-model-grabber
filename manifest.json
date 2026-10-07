@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Model Grabber for Tripo3D",
   "short_name": "Model Grabber",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Catches .glb/.gltf/.fbx/.obj/.usdz/.stl model files as they load on studio.tripo3d.ai so you can save them in one click. Unofficial, not affiliated with Tripo3D.",
   "permissions": ["webRequest", "downloads", "storage"],
   "host_permissions": [

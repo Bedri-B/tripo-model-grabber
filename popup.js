@@ -17,6 +17,39 @@ function formatTimeAgo(ts) {
   return `${Math.floor(s / 3600)}h ago`;
 }
 
+function formatCountdown(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  return `${Math.floor(s / 3600)}h`;
+}
+
+// Tripo's CDN serves models via CloudFront-signed URLs that carry their own
+// expiry inside the `Policy` query param. Decoding it lets us warn before a
+// download attempt fails, instead of only finding out after the fact.
+function getUrlExpiry(url) {
+  try {
+    const u = new URL(url);
+    const policy = u.searchParams.get("Policy");
+    if (!policy) return null;
+    const std = policy.replace(/-/g, "+").replace(/_/g, "=").replace(/~/g, "/");
+    const data = JSON.parse(atob(std));
+    const epoch = data?.Statement?.[0]?.Condition?.DateLessThan?.["AWS:EpochTime"];
+    return typeof epoch === "number" ? epoch * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function isExpired(m) {
+  const expiresAt = getUrlExpiry(m.url);
+  return expiresAt != null && Date.now() > expiresAt;
+}
+
+function isActionable(m) {
+  return !m.downloaded && !isExpired(m);
+}
+
 function sanitizeFilename(name) {
   return name
     .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
@@ -65,7 +98,7 @@ async function getModels() {
 
 async function setModels(models) {
   await chrome.storage.session.set({ models });
-  const pending = models.filter((m) => !m.downloaded).length;
+  const pending = models.filter((m) => isActionable(m)).length;
   chrome.action.setBadgeText({ text: pending ? String(pending) : "" });
 }
 
@@ -152,6 +185,11 @@ async function render() {
   const list = document.getElementById("list");
   const empty = document.getElementById("empty");
 
+  // Refresh the badge on every popup open too, since links can silently
+  // expire between captures with no other event to trigger a recount.
+  const pending = models.filter((m) => isActionable(m)).length;
+  chrome.action.setBadgeText({ text: pending ? String(pending) : "" });
+
   list.textContent = "";
 
   if (!models.length) {
@@ -187,10 +225,15 @@ async function render() {
     const groupBtn = document.createElement("button");
     groupBtn.type = "button";
     groupBtn.className = "group-download";
-    const pendingInGroup = group.filter((m) => !m.downloaded);
-    groupBtn.textContent = pendingInGroup.length
-      ? `Download ${pendingInGroup.length} new`
-      : "All saved";
+    const pendingInGroup = group.filter((m) => isActionable(m));
+    const expiredUndownloaded = group.filter((m) => !m.downloaded && isExpired(m));
+    if (pendingInGroup.length) {
+      groupBtn.textContent = `Download ${pendingInGroup.length} new`;
+    } else if (expiredUndownloaded.length) {
+      groupBtn.textContent = "Links expired";
+    } else {
+      groupBtn.textContent = "All saved";
+    }
     groupBtn.disabled = pendingInGroup.length === 0;
     groupBtn.addEventListener("click", () => {
       for (const m of pendingInGroup) downloadModel(m);
@@ -205,7 +248,9 @@ async function render() {
 
     for (const m of group) {
       const li = document.createElement("li");
+      const expired = !m.downloaded && isExpired(m);
       if (m.downloaded) li.classList.add("downloaded");
+      if (expired) li.classList.add("expired");
 
       const info = document.createElement("div");
       info.className = "info";
@@ -215,19 +260,36 @@ async function render() {
       name.title = m.filename;
       name.textContent = m.filename;
 
+      const metaParts = [formatSize(m.size), formatTimeAgo(m.capturedAt)].filter(Boolean);
+      if (expired) {
+        metaParts.push("link expired");
+      } else if (!m.downloaded) {
+        const expiresAt = getUrlExpiry(m.url);
+        if (expiresAt != null) {
+          metaParts.push(`expires in ${formatCountdown(expiresAt - Date.now())}`);
+        }
+      }
+
       const meta = document.createElement("span");
       meta.className = "meta";
-      meta.textContent = [formatSize(m.size), formatTimeAgo(m.capturedAt)]
-        .filter(Boolean)
-        .join(" · ");
+      meta.textContent = metaParts.join(" · ");
 
       info.appendChild(name);
       info.appendChild(meta);
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = m.downloaded ? "Downloaded ✓" : "Download";
-      btn.title = m.downloaded ? "Download again" : "Download";
+      if (m.downloaded) {
+        btn.textContent = "Downloaded ✓";
+        btn.title = "Download again";
+      } else if (expired) {
+        btn.textContent = "Expired";
+        btn.title = "Reopen the model on studio.tripo3d.ai to refresh this link";
+        btn.disabled = true;
+      } else {
+        btn.textContent = "Download";
+        btn.title = "Download";
+      }
       btn.addEventListener("click", () => downloadModel(m));
 
       li.appendChild(info);
@@ -242,7 +304,7 @@ async function render() {
 
 document.getElementById("downloadAll").addEventListener("click", async () => {
   const models = await getModels();
-  for (const m of models.filter((x) => !x.downloaded)) downloadModel(m);
+  for (const m of models.filter((x) => isActionable(x))) downloadModel(m);
 });
 
 document.getElementById("clear").addEventListener("click", async () => {

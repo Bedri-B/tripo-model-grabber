@@ -45,8 +45,30 @@ async function getTabInfo(tabId) {
   }
 }
 
+// Mirrors popup.js's getUrlExpiry/isExpired — see there for why: CloudFront
+// signed URLs carry their own expiry in the `Policy` query param.
+function getUrlExpiry(url) {
+  try {
+    const u = new URL(url);
+    const policy = u.searchParams.get("Policy");
+    if (!policy) return null;
+    const std = policy.replace(/-/g, "+").replace(/_/g, "=").replace(/~/g, "/");
+    const data = JSON.parse(atob(std));
+    const epoch = data?.Statement?.[0]?.Condition?.DateLessThan?.["AWS:EpochTime"];
+    return typeof epoch === "number" ? epoch * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function isActionable(m) {
+  if (m.downloaded) return false;
+  const expiresAt = getUrlExpiry(m.url);
+  return expiresAt == null || Date.now() <= expiresAt;
+}
+
 function updateBadge(models) {
-  const pending = models.filter((m) => !m.downloaded).length;
+  const pending = models.filter((m) => isActionable(m)).length;
   chrome.action.setBadgeText({ text: pending ? String(pending) : "" });
   chrome.action.setBadgeBackgroundColor({ color: "#2563eb" });
 }

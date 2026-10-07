@@ -47,9 +47,15 @@ as long as the signed URL hasn't expired yet.
    (e.g. Tripo3D didn't update it for that project), it falls back to the
    original CDN filename.
 
-Signed URLs expire after a while, so download soon after an entry appears —
-if a download fails, just reload/reopen the model in the site to re-trigger
-the fetch and capture a fresh link.
+Signed URLs expire after a while. Rather than only finding out when a
+download fails, the extension decodes the expiry embedded in the CDN URL's
+`Policy` parameter (standard CloudFront signed-URL format) and shows
+"expires in Xm" next to pending entries, switching to a disabled "Expired"
+state once the link has actually lapsed — so expired links no longer count
+toward the badge either. If a link does expire before you download it,
+reload/reopen the model on the site to capture a fresh one. This decoding
+is defensive: if Tripo's CDN URLs ever stop matching the expected format,
+it silently falls back to no countdown rather than breaking anything.
 
 ## Notes
 
