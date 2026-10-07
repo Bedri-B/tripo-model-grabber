@@ -165,12 +165,6 @@ function downloadModel(m, retryWithSafeName = false) {
       url: m.url,
       filename,
       saveAs: false,
-      // Best-effort: some CDNs gate hotlinked requests on Referer/Origin.
-      // Chrome may ignore unsupported header names here; harmless either way.
-      headers: [
-        { name: "Referer", value: "https://studio.tripo3d.ai/" },
-        { name: "Origin", value: "https://studio.tripo3d.ai" },
-      ],
     },
     (downloadId) => {
       if (chrome.runtime.lastError || downloadId === undefined) {

@@ -80,9 +80,15 @@ them instead of guessing "expired" for everything:
   a **Retry** state showing the real interruption reason (e.g. "server
   rejected the request (403 Forbidden)"). An entry sits as "Downloading…"
   in between.
-- Every download request also sends `Referer`/`Origin: https://studio.tripo3d.ai`
-  headers as a best-effort guard in case the CDN gates requests on those
-  (Chrome may silently drop unsupported headers here — harmless if so).
+
+Note: `chrome.downloads.download()` cannot set `Referer`/`Origin` headers —
+Chrome treats those as forbidden/"unsafe" header names and rejects the
+call outright (`Unsafe request header name`) if you try. An earlier
+version of this extension attempted that as a defensive measure against
+possible CDN hotlink-protection; it was wrong to assume Chrome would
+silently ignore it, and was removed. It also turned out to be unnecessary
+here — Tripo's CDN authorizes purely via the signed URL's own
+`Policy`/`Signature` query params, with no header-based condition.
 
 This means a file is only ever marked "Downloaded" once Chrome confirms
 the transfer actually completed — not just that it started.
