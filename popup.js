@@ -54,12 +54,24 @@ function isActionable(m) {
   return !m.downloaded && !isExpired(m) && !isInFlight(m);
 }
 
+const RESERVED_WINDOWS_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+
 function sanitizeFilename(name) {
-  return name
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80);
+  // Spread to iterate by Unicode codepoint, not UTF-16 code unit, so a
+  // later length-cap can't split a surrogate pair and leave a lone
+  // (invalid) surrogate in the result.
+  const codepoints = [...name].filter((ch) => {
+    const code = ch.codePointAt(0);
+    if (code <= 0x1f || code === 0x7f) return false;
+    if ('<>:"/\\|?*'.includes(ch)) return false;
+    return true;
+  });
+
+  let out = codepoints.join("").replace(/\s+/g, " ").trim();
+  out = [...out].slice(0, 80).join("");
+  out = out.replace(/[\s.]+$/, ""); // Windows rejects trailing dots/spaces
+  if (RESERVED_WINDOWS_NAMES.test(out)) out += "_";
+  return out;
 }
 
 // Strips a trailing " - Tripo3D Studio" / " | Tripo3D" style site suffix, if present.
@@ -88,11 +100,17 @@ function pageDisplayName(m) {
 function buildDownloadPath(m) {
   const ext = fileExt(m.filename);
   const cleaned = sanitizeFilename(cleanPageTitle(m.pageTitle));
-  if (!cleaned) return `Tripo3D/${m.filename}`;
+  if (!cleaned) return safeDownloadPath(m);
 
   const label = partLabel(m.filename);
   const nameOnly = label ? `${cleaned} (${label})` : cleaned;
   return `Tripo3D/${cleaned}/${nameOnly}.${ext}`;
+}
+
+// The original CDN filename is already filesystem-safe (no title-derived
+// text in it), so this is the guaranteed-to-work fallback path.
+function safeDownloadPath(m) {
+  return `Tripo3D/${m.filename}`;
 }
 
 async function getModels() {
@@ -140,11 +158,12 @@ async function recordQueuedDownload(m, downloadId) {
   render();
 }
 
-function downloadModel(m) {
+function downloadModel(m, retryWithSafeName = false) {
+  const filename = retryWithSafeName ? safeDownloadPath(m) : buildDownloadPath(m);
   chrome.downloads.download(
     {
       url: m.url,
-      filename: buildDownloadPath(m),
+      filename,
       saveAs: false,
       // Best-effort: some CDNs gate hotlinked requests on Referer/Origin.
       // Chrome may ignore unsupported header names here; harmless either way.
@@ -156,6 +175,15 @@ function downloadModel(m) {
     (downloadId) => {
       if (chrome.runtime.lastError || downloadId === undefined) {
         const reason = chrome.runtime.lastError?.message || "unknown error";
+
+        // The title-derived filename can hit an edge case our sanitizer
+        // didn't anticipate. Rather than fail outright, retry once with
+        // the original CDN filename, which is always filesystem-safe.
+        if (!retryWithSafeName && filename !== safeDownloadPath(m)) {
+          downloadModel(m, true);
+          return;
+        }
+
         const expiryNote = isExpired(m)
           ? " This link's signed expiry has in fact passed — reopen the model on studio.tripo3d.ai to refresh it."
           : " This link isn't expired yet, so this is likely a Chrome/network issue — try again, or check chrome://downloads.";

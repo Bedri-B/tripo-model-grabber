@@ -49,7 +49,12 @@ notes below.
    `Tripo3D/<page name>/<page name> (part N).ext`, using the browser
    tab's title as the display name. If the tab title isn't descriptive
    (e.g. Tripo3D didn't update it for that project), it falls back to the
-   original CDN filename.
+   original CDN filename. If Chrome ever rejects the title-derived name
+   outright (`Invalid filename` — e.g. an edge-case title that sanitizes
+   down to something Chrome's filename validator still dislikes), the
+   extension automatically retries once using the original CDN filename,
+   which is always filesystem-safe, so a quirky title degrades gracefully
+   instead of blocking the download.
 
 Signed URLs expire after a while. Rather than only finding out when a
 download fails, the extension decodes the expiry embedded in the CDN URL's
