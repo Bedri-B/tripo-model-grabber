@@ -21,7 +21,11 @@ One confirmed example from the HAR: models are served from
 `tripo-data.rg1.data.tripo3d.com` via CloudFront-signed URLs
 (`Key-Pair-Id` / `Policy` / `Signature` query params) with no cookie/auth
 header required — so `chrome.downloads.download()` can fetch them directly
-as long as the signed URL hasn't expired yet.
+as long as the signed URL hasn't expired yet. A second HAR capture let us
+decode an actual `Policy` param end-to-end: the signature's embedded expiry
+is roughly **1–2 days** out, not minutes — so a download failing shortly
+after capture is probably *not* an expired link; see the error-reporting
+notes below.
 
 ## Install (unpacked)
 
@@ -56,6 +60,27 @@ toward the badge either. If a link does expire before you download it,
 reload/reopen the model on the site to capture a fresh one. This decoding
 is defensive: if Tripo's CDN URLs ever stop matching the expected format,
 it silently falls back to no countdown rather than breaking anything.
+
+## Diagnosing a failed download
+
+A download can fail two different ways, and the popup now distinguishes
+them instead of guessing "expired" for everything:
+
+- **Chrome refuses to even queue it** (bad filename, etc.) — the status
+  message shows Chrome's actual error text directly.
+- **Chrome queues it, then the transfer itself fails** (e.g. the server
+  returns 403/404, or a network error) — this is only knowable
+  asynchronously, via `chrome.downloads.onChanged`, which `background.js`
+  listens for and uses to resolve an entry to either **Downloaded ✓** or
+  a **Retry** state showing the real interruption reason (e.g. "server
+  rejected the request (403 Forbidden)"). An entry sits as "Downloading…"
+  in between.
+- Every download request also sends `Referer`/`Origin: https://studio.tripo3d.ai`
+  headers as a best-effort guard in case the CDN gates requests on those
+  (Chrome may silently drop unsupported headers here — harmless if so).
+
+This means a file is only ever marked "Downloaded" once Chrome confirms
+the transfer actually completed — not just that it started.
 
 ## Notes
 

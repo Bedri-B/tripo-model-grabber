@@ -126,7 +126,8 @@ h1 {
   opacity: 0.55;
 }
 
-.page-items li.expired .meta {
+.page-items li.expired .meta,
+.page-items li.has-error .meta {
   color: #b91c1c;
 }
 
@@ -135,6 +136,12 @@ h1 {
   color: #b91c1c;
   background: #fff;
   cursor: not-allowed;
+}
+
+.page-items li.has-error button {
+  border-color: #e5b4b4;
+  color: #b91c1c;
+  background: #fff;
 }
 
 .info {

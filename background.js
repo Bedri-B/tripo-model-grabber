@@ -63,9 +63,49 @@ function getUrlExpiry(url) {
 
 function isActionable(m) {
   if (m.downloaded) return false;
+  const inFlight = !m.downloadError && m.downloadId != null;
+  if (inFlight) return false;
   const expiresAt = getUrlExpiry(m.url);
   return expiresAt == null || Date.now() <= expiresAt;
 }
+
+// Chrome's downloads.download() callback only reports *synchronous* queueing
+// failures. Whether a download actually succeeds or gets rejected by the
+// server happens later and is reported here — this is what resolves a
+// "downloading…" entry to a confirmed "Downloaded" or a real error reason,
+// instead of guessing based on signed-URL expiry alone.
+const INTERRUPT_REASONS = {
+  SERVER_FORBIDDEN: "server rejected the request (403 Forbidden)",
+  SERVER_BAD_CONTENT: "file no longer exists on the server (404)",
+  NETWORK_FAILED: "network error",
+  NETWORK_TIMEOUT: "network timeout",
+  USER_CANCELED: "canceled",
+  FILE_ACCESS_DENIED: "couldn't write the file (check folder permissions)",
+};
+
+function describeInterruptReason(reason) {
+  return INTERRUPT_REASONS[reason] || reason || "unknown error";
+}
+
+chrome.downloads.onChanged.addListener(async (delta) => {
+  if (!delta.state) return;
+  const { models = [] } = await chrome.storage.session.get("models");
+  const idx = models.findIndex((m) => m.downloadId === delta.id);
+  if (idx < 0) return;
+
+  if (delta.state.current === "complete") {
+    models[idx].downloaded = true;
+    models[idx].downloadedAt = Date.now();
+    models[idx].downloadError = null;
+  } else if (delta.state.current === "interrupted") {
+    models[idx].downloadError = describeInterruptReason(delta.error?.current);
+  } else {
+    return; // "in_progress" — nothing resolved yet
+  }
+
+  await chrome.storage.session.set({ models });
+  updateBadge(models);
+});
 
 function updateBadge(models) {
   const pending = models.filter((m) => isActionable(m)).length;
@@ -125,6 +165,8 @@ chrome.webRequest.onCompleted.addListener(
       capturedAt: Date.now(),
       downloaded: false,
       downloadedAt: null,
+      downloadId: null,
+      downloadError: null,
     });
   },
   { urls: ["https://*.tripo3d.ai/*", "https://*.tripo3d.com/*"] },

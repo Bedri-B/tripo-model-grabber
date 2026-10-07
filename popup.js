@@ -46,8 +46,12 @@ function isExpired(m) {
   return expiresAt != null && Date.now() > expiresAt;
 }
 
+function isInFlight(m) {
+  return !m.downloaded && !m.downloadError && m.downloadId != null;
+}
+
 function isActionable(m) {
-  return !m.downloaded && !isExpired(m);
+  return !m.downloaded && !isExpired(m) && !isInFlight(m);
 }
 
 function sanitizeFilename(name) {
@@ -121,12 +125,16 @@ function showStatus(message) {
   }, 5000);
 }
 
-async function markDownloaded(m) {
+// Records that a download was *queued* (not necessarily finished) so
+// background.js's downloads.onChanged listener can later resolve it to
+// "downloaded" (complete) or an error (interrupted) even if this popup
+// closes before that happens.
+async function recordQueuedDownload(m, downloadId) {
   const models = await getModels();
   const idx = models.findIndex((x) => keyOf(x) === keyOf(m));
   if (idx >= 0) {
-    models[idx].downloaded = true;
-    models[idx].downloadedAt = Date.now();
+    models[idx].downloadId = downloadId;
+    models[idx].downloadError = null;
     await setModels(models);
   }
   render();
@@ -138,15 +146,23 @@ function downloadModel(m) {
       url: m.url,
       filename: buildDownloadPath(m),
       saveAs: false,
+      // Best-effort: some CDNs gate hotlinked requests on Referer/Origin.
+      // Chrome may ignore unsupported header names here; harmless either way.
+      headers: [
+        { name: "Referer", value: "https://studio.tripo3d.ai/" },
+        { name: "Origin", value: "https://studio.tripo3d.ai" },
+      ],
     },
     (downloadId) => {
       if (chrome.runtime.lastError || downloadId === undefined) {
-        showStatus(
-          `Couldn't download ${m.filename} — the link may have expired. Reopen the model on studio.tripo3d.ai to refresh it.`
-        );
+        const reason = chrome.runtime.lastError?.message || "unknown error";
+        const expiryNote = isExpired(m)
+          ? " This link's signed expiry has in fact passed — reopen the model on studio.tripo3d.ai to refresh it."
+          : " This link isn't expired yet, so this is likely a Chrome/network issue — try again, or check chrome://downloads.";
+        showStatus(`Couldn't start download for ${m.filename}: ${reason}.${expiryNote}`);
         return;
       }
-      markDownloaded(m);
+      recordQueuedDownload(m, downloadId);
     }
   );
 }
@@ -249,8 +265,10 @@ async function render() {
     for (const m of group) {
       const li = document.createElement("li");
       const expired = !m.downloaded && isExpired(m);
+      const inFlight = isInFlight(m);
       if (m.downloaded) li.classList.add("downloaded");
       if (expired) li.classList.add("expired");
+      if (m.downloadError) li.classList.add("has-error");
 
       const info = document.createElement("div");
       info.className = "info";
@@ -261,7 +279,11 @@ async function render() {
       name.textContent = m.filename;
 
       const metaParts = [formatSize(m.size), formatTimeAgo(m.capturedAt)].filter(Boolean);
-      if (expired) {
+      if (m.downloadError) {
+        metaParts.push(`failed: ${m.downloadError}`);
+      } else if (inFlight) {
+        metaParts.push("downloading…");
+      } else if (expired) {
         metaParts.push("link expired");
       } else if (!m.downloaded) {
         const expiresAt = getUrlExpiry(m.url);
@@ -282,6 +304,13 @@ async function render() {
       if (m.downloaded) {
         btn.textContent = "Downloaded ✓";
         btn.title = "Download again";
+      } else if (inFlight) {
+        btn.textContent = "Downloading…";
+        btn.title = "Download in progress";
+        btn.disabled = true;
+      } else if (m.downloadError) {
+        btn.textContent = "Retry";
+        btn.title = m.downloadError;
       } else if (expired) {
         btn.textContent = "Expired";
         btn.title = "Reopen the model on studio.tripo3d.ai to refresh this link";
@@ -311,5 +340,10 @@ document.getElementById("clear").addEventListener("click", async () => {
   await setModels([]);
   render();
 });
+
+// background.js resolves queued downloads to complete/interrupted via
+// chrome.downloads.onChanged and writes the result to storage; re-render
+// live if that happens while this popup happens to still be open.
+chrome.downloads.onChanged.addListener(() => render());
 
 render();
